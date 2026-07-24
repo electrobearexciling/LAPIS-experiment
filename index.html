@@ -737,6 +737,7 @@
 	      let preload_VASTR = {
 	        type: jsPsychPreload,
 	        message: "请等待问卷图片加载完成：",
+			continue_after_error: true, 
 	        images: vastr.getImageSources()
 	      };
 	      let vastr_instructions = vastr.getjsPsychInstructions();
@@ -764,6 +765,7 @@
 	      let preload_VAIAK = {
 	        type: jsPsychPreload,
 	        message: "请等待问卷图片加载完成：",
+			continue_after_error: true, 
 	        images: Vaiak.getPreloadImages()
 	      };
 	      let vaiak_trials = Vaiak.getTrials();
