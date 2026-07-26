@@ -152,7 +152,7 @@
 	        }
 	        // 获取对应被试号的图片列表
 	        // 取所有图片
-        var image_filenames = assignmentData[input_subject_id.toString()].slice(0, 4);
+        var image_filenames = assignmentData[input_subject_id.toString()].slice(0, 480);
 	        if (!image_filenames) {
 	            alert("未找到被试号 " + input_subject_id + " 的图片分配信息。\n请确认被试号在1-733之间。");
 	            setTimeout(function() {
@@ -354,7 +354,7 @@
 	        return {
 	            type: jsPsychPreload,
 	            message: '请等待实验加载。这可能需要几分钟时间。',
-	            show_progress_bar: false,
+	            show_progress_bar: true,
 				continue_after_error: true,
 	            images: [
 	              'img/zjulogo.jpg',
@@ -497,7 +497,7 @@
 	    /***************************************
 	    * 创建评分块（每个块2张图片）
 	    ***************************************/
-	    const ntrials_perblock = 2;
+	    const ntrials_perblock = 240;
 	    function create_ratings_block(index){
 	      var preload_images = {
 	        type: jsPsychPreload,
