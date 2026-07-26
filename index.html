@@ -152,7 +152,7 @@
 	        }
 	        // 获取对应被试号的图片列表
 	        // 取所有图片
-        var image_filenames = assignmentData[input_subject_id.toString()].slice(0, 480);
+        var image_filenames = assignmentData[input_subject_id.toString()].slice(0, 4);
 	        if (!image_filenames) {
 	            alert("未找到被试号 " + input_subject_id + " 的图片分配信息。\n请确认被试号在1-733之间。");
 	            setTimeout(function() {
@@ -497,7 +497,7 @@
 	    /***************************************
 	    * 创建评分块（每个块2张图片）
 	    ***************************************/
-	    const ntrials_perblock = 240;
+	    const ntrials_perblock = 2;
 	    function create_ratings_block(index){
 	      var preload_images = {
 	        type: jsPsychPreload,
@@ -573,16 +573,42 @@
 	    /***************************************
 	    * 实验结束及数据保存
 	    ***************************************/
-	    const save_data_trial = {
+	    const download_ratings_trial = {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: `
+                <p>图片评分数据正在自动保存...</p></br></br>
+                <p style="color:red; font-size:28px; font-weight:bold;">
+                    请允许浏览器下载文件，确认下载\u201C002_ratings.csv\u201D后，将浏览器调整回全屏状态并点击\u201C确认已下载\u201D继续问卷部分。
+                </p>
+                <div id="download-confirm-area" style="margin-top:25px;">
+                    <button id="confirm-download-btn" style="padding:12px 40px;font-size:16px;cursor:pointer;background:#4a90d9;color:#fff;border:none;border-radius:5px;">确认已下载</button>
+                </div>
+                <div id="completion-area" style="display:none; margin-top:20px;"></div>
+                <p id="save-status" style="color:#666;font-size:14px;margin-top:10px;"></p>`,
+        choices: [],
+        data: {
+            test_part: 'download_ratings'
+        },
+        on_load: function() {
+            setTimeout(saveRatingsData, 100);
+            var confirmBtn = document.getElementById('confirm-download-btn');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function() {
+                    jsPsych.finishTrial();
+                });
+            }
+        }
+    };
+	    const download_pp_trial = {
         type: jsPsychHtmlButtonResponse,
         stimulus: `
                 <p>感谢您的时间和参与！</p>
                 <p>实验数据正在自动保存...</p></br></br>
                 <p style="color:red; font-size:28px; font-weight:bold;">
-                    请允许浏览器下载多个文件，确认下载两个文件，例如\u201C002_ratings.csv\u201D和\u201C002_pp_info.csv\u201D后，点击\u201C确认已下载\u201D。
+                    请允许浏览器下载文件，确认下载\u201C002_pp_info.csv\u201D后，点击\u201C完成\u201D。
                 </p>
                 <div id="download-confirm-area" style="margin-top:25px;">
-                    <button id="confirm-download-btn" style="padding:12px 40px;font-size:16px;cursor:pointer;background:#4a90d9;color:#fff;border:none;border-radius:5px;">确认已下载</button>
+                    <button id="confirm-download-btn" style="padding:12px 40px;font-size:16px;cursor:pointer;background:#4a90d9;color:#fff;border:none;border-radius:5px;">完成</button>
                 </div>
                 <div id="completion-area" style="display:none; margin-top:20px;"></div>
                 <p id="save-status" style="color:#666;font-size:14px;margin-top:10px;"></p>`,
@@ -592,7 +618,7 @@
             exp_interaction: exp_interaction,
         },
         on_load: function() {
-            setTimeout(saveExperimentData, 100);
+            setTimeout(savePPData, 100);
             var confirmBtn = document.getElementById('confirm-download-btn');
             if (confirmBtn) {
                 confirmBtn.addEventListener('click', function() {
@@ -697,7 +723,95 @@
 	                if (st) st.textContent = "保存完成！";
 	            });
 	        });
-	    }
+	    }    function saveRatingsData() {
+        var sid = (subject_id || "").toString().padStart(3, "0");
+        var allData = jsPsych.data.get().values();
+        var h = ["id","block_id","trial_index","stimulus","image_id","rt","response"];
+        var ratingsRows = [h];
+        for (var i = 0; i < allData.length; i++) {
+            var d = allData[i];
+            if (d.test_part === "ratings") {
+                ratingsRows.push([sid, d.block_id, d.trial_index, d.filename, d.image_id, d.rt, d.response]);
+            }
+        }
+        var ratingsCsv = ratingsRows.map(function(r) { return r.join(","); }).join("\n");
+        function dlOne(content, name, cb) {
+            setTimeout(function() {
+                var b = new Blob(["\uFEFF" + content], {type: "text/csv;charset=utf-8;"});
+                var url = URL.createObjectURL(b);
+                var a = document.createElement("a"); a.href = url; a.download = name;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(url); if (cb) cb(); }, 100);
+            }, 50);
+        }
+        dlOne(ratingsCsv, sid + "_ratings.csv", function() {});
+    }
+    
+    function savePPData() {
+        var sid = (subject_id || "").toString().padStart(3, "0");
+        var allData = jsPsych.data.get().values();
+        function fv(arr, key) {
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i].test_part === key) return arr[i];
+            }
+            return {};
+        }
+        var demo = fv(allData, "demographics");
+        var demoResp = demo.response || {};
+        var vastrAll = allData.filter(function(d) { return d.test_part === "vast-r"; });
+        var vaiakAll = allData.filter(function(d) { return d.test_part && d.test_part.indexOf("vaiak") === 0; });
+        var knownData = allData.filter(function(d) { return d.response && d.response.imgs_known !== undefined; });
+        var issuesObj = fv(allData, "issues");
+        var issuesVal = "";
+        if (issuesObj.response) {
+            issuesVal = typeof issuesObj.response === "string" ? issuesObj.response : JSON.stringify(issuesObj.response);
+        }
+        var vastrResp = [];
+        for (var vi = 0; vi < vastrAll.length; vi++) {
+            var v = vastrAll[vi];
+            vastrResp.push({trial: v.trial_number, img: v.image_number, resp: v.response});
+        }
+        var vastrRespStr = JSON.stringify(vastrResp);
+        var vaiakResp = [];
+        for (var vi = 0; vi < vaiakAll.length; vi++) {
+            var v = vaiakAll[vi];
+            vaiakResp.push({part: v.test_part, resp: v.response});
+        }
+        var vaiakRespStr = JSON.stringify(vaiakResp);
+        var ppHeader = ["id","start_iso","end_iso","duration_minutes",
+            "age","gender","province","native_language","education","current_occupation","visual_impairments",
+            "art_history_education","art_history_education_1_years","art_history_education_2_years","art_history_education_2_history_course","art_history_education_3_years",
+            "art_conservation","art_conservation_education_1_years","art_conservation_education_2_years","art_conservation_education_2_history_course","art_conservation_education_3_years",
+            "imgs_known1","imgs_known2",
+            "vastr_individual","vaiak_individual",
+            "issues"].join(",");
+        var ppRow = [
+            sid,
+            allData.length > 0 ? allData[0].start_iso || "" : "",
+            (function(){var n=new Date();return toBeijingISOString(n);})(),
+            (function(){if(allData.length>0&&allData[0].start_iso){var d=(Date.now()-new Date(allData[0].start_iso).getTime())/60000;if(!isNaN(d))return d.toFixed(2);return"";}})(),
+            demoResp.age || "", demoResp.gender || "", demoResp.province || "", demoResp.native_language || "", demoResp.education || "", demoResp.current_occupation || "", demoResp.visual_impairments || "",
+            demoResp.art_history_education || "", demoResp.art_history_education_1_years || "", demoResp.art_history_education_2_years || "", demoResp.art_history_education_2_history_course || "", demoResp.art_history_education_3_years || "",
+            demoResp.art_conservation || "", demoResp.art_conservation_education_1_years || "", demoResp.art_conservation_education_2_years || "", demoResp.art_conservation_education_2_history_course || "", demoResp.art_conservation_education_3_years || "",
+            knownData.length > 0 ? knownData[0].response.imgs_known : "",
+            knownData.length > 1 ? knownData[1].response.imgs_known : "",
+            vastrRespStr,
+            vaiakRespStr,
+            issuesVal
+        ].join(",");
+        var ppCsv = ppHeader + "\n" + ppRow;
+        function dlOne(content, name, cb) {
+            setTimeout(function() {
+                var b = new Blob(["\uFEFF" + content], {type: "text/csv;charset=utf-8;"});
+                var url = URL.createObjectURL(b);
+                var a = document.createElement("a"); a.href = url; a.download = name;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(url); if (cb) cb(); }, 100);
+            }, 50);
+        }
+        dlOne(ppCsv, sid + "_pp_info.csv", function() {});
+    }
+
 	    /***************************************
 	    * 构建并运行完整实验
 	    ***************************************/
@@ -730,6 +844,7 @@
 	        fullTimeline.push(...create_ratings_block(j));
 	      }
 	      fullTimeline.push(no_known_2);
+	      fullTimeline.push(download_ratings_trial);
 	      // ===== 问卷部分 =====
 	      fullTimeline.push(toquestionnaires);
 	      // ----- VAST-R 问卷初始化 -----
@@ -780,7 +895,7 @@
 	        issues,
 	        exit_fullscreen,
 	        addEndTime,
-	        save_data_trial
+	        download_pp_trial
 	      );
 	      setTimeout(function() {
 	          jsPsych.run(fullTimeline);
