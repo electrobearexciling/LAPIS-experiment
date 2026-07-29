@@ -502,7 +502,7 @@
 	      var preload_images = {
 	        type: jsPsychPreload,
 	        message: "请等待实验图片加载完成：",
-	        show_progress_bar: false,
+	        show_progress_bar: true,
 	        continue_after_error: true,
 	        // 修复：移除多余的数组嵌套 []，slice 已返回数组
 	        images: images_to_load.slice(ntrials_perblock*(index-1), ntrials_perblock*index)
