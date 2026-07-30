@@ -138,7 +138,6 @@ const DEMOGRAPHICS = {
                 {value: "qh", text: "青海省"},
                 {value: "nx", text: "宁夏回族自治区"},
                 {value: "xj", text: "新疆维吾尔自治区"},
-                {value: "nm", text: "内蒙古自治区"},
                 {value: "tw", text: "台湾省"},
                 {value: "hk", text: "香港特别行政区"},
                 {value: "mo", text: "澳门特别行政区"}
